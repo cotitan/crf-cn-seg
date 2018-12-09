@@ -4,7 +4,7 @@ import argparse
 parse = argparse.ArgumentParser()
 
 parse.add_argument("--input_file", type=str, default="pku_training.utf8", help="")
-parse.add_argument("--tag_schema", type=str, default="bio", help="bio/bioes")
+parse.add_argument("--tag_schema", type=str, default="bies", help="bi/bies")
 parse.add_argument("--encoding", type=str, default="utf8", help="input file encoding")
 
 args = parse.parse_args()
@@ -17,12 +17,12 @@ for i, line in enumerate(fin):
         continue
     else:
         words = line.strip().split()
-        if args.tag_schema == "bio":
+        if args.tag_schema == "bi":
             for word in words:
                 fout.write(word[0] + " B\n")
                 for ch in word[1:]:
                     fout.write(ch + " I\n")
-        elif args.tag_schema == "bioes":
+        elif args.tag_schema == "bies":
             for word in words:
                 if len(word) == 1:
                     fout.write(word + " S\n")

@@ -2,7 +2,7 @@ import os
 import json
 
 vocab_file = "vocab.json"
-tag2id = {"B": 0, "I": 1, "O": 2, "E": 3, "S": 4, "<s>": 5, "</s>": 6}
+tag2id = {"B": 0, "I": 1, "E": 2, "S": 3, "<s>": 4, "</s>": 5}
 
 def build_vocab(filein, vocab_file):
     fin = open(filein)
@@ -56,6 +56,6 @@ class BatchManager:
 
 
 if __name__ == "__main__":
-    X, Y = load_data("train.bioes")
+    X, Y = load_data("train.bioes", "vocab.json")
     pass
     
