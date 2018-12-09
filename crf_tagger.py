@@ -91,19 +91,21 @@ class CRF(nn.Module):
         for ch_id in x:
             emit_score = self.emit_score[ch_id].view(1, -1)
             _score = alphas.view(-1, 1) + emit_score + self.transitions # 7*7
-            alphas, maxx_id = torch.max(_score, dim=0)[0]
+            alphas, maxx_id = torch.max(_score, dim=0)
             path.append(maxx_id)
         alphas += self.transitions[:, self.tag2id["</s>"]]
 
         return self.back_trace(path, torch.argmax(alphas))
 
 def test_infer(model, vocab, tag2id):
-    sentence = "中山大学创办于1924年，是孙中心先生一手创立的"
-    x = [vocab[ch] for ch in sentence]
-    ids = model.infer(x)
-    id2tag = {v:k for k,v in tag2id.items()]
-    tags = [id2tag[i] for i in ids]
-    print(tags)
+    with torch.no_grad():
+        sentence = "中山大学创办于1924年，是孙中心先生一手创立的"
+        x = [vocab[ch] for ch in sentence]
+        ids = model.infer(x)
+        id2tag = {v:k for k,v in tag2id.items()}
+        ids = [int(x.cpu().numpy()) for x in ids]
+        tags = [id2tag[i] for i in ids]
+        print(tags)
 
 if __name__ == "__main__":
     X, Y, vocab, tag2id = utils.load_data("train.bioes", "vocab.json")
