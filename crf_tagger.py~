@@ -110,7 +110,7 @@ def test_infer(model, vocab, tag2id):
         print(tags)
 
 if __name__ == "__main__":
-    X, Y, vocab, tag2id = utils.load_data("train.bies", "vocab.json")
+    X, Y, vocab, tag2id = utils.load_data("train.bioes", "vocab.json")
     model = CRF(vocab, tag2id).cuda()
     if os.path.exists(args.model_file):
         model.load_state_dict(torch.load(args.model_file))
