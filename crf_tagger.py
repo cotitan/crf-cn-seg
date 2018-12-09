@@ -97,12 +97,22 @@ class CRF(nn.Module):
 
         return self.back_trace(path, torch.argmax(alphas))
 
+def test_infer(model, vocab, tag2id):
+    sentence = "中山大学创办于1924年，是孙中心先生一手创立的"
+    x = [vocab[ch] for ch in sentence]
+    ids = model.infer(x)
+    id2tag = {v:k for k,v in tag2id.items()]
+    tags = [id2tag[i] for i in ids]
+    print(tags)
 
 if __name__ == "__main__":
     X, Y, vocab, tag2id = utils.load_data("train.bioes", "vocab.json")
     model = CRF(vocab, tag2id).cuda()
     if os.path.exists(args.model_file):
         model.load_state_dict(torch.load(args.model_file))
+    
+    test_infer(model, vocab, tag2id)
+    
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
 
     batch_size = 32
