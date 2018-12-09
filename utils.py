@@ -23,16 +23,14 @@ def load_data(filein, vocab_file):
     fin = open(filein)
     X = []
     Y = []
-    x = [vocab["<s>"]]
-    y = [tag2id["<s>"]]
+    x = []
+    y = []
     for _, line in enumerate(fin):
         if line.strip() == "":
-            x.append(vocab["</s>"])
-            y.append(tag2id["</s>"])
             X.append(x)
             Y.append(y)
-            x = [vocab["<s>"]]
-            y = [tag2id["<s>"]]
+            x = []
+            y = []
         else:
             try:
                 char, tag = line.strip().split()

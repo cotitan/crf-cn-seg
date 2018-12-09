@@ -2,6 +2,11 @@ import numpy as np
 import torch
 from torch import nn
 import utils
+import argparse
+
+args = argparse.ArgumentParser()
+args.add_argument('--model_file', type=str, default="models/params_0.pkl")
+args.parse_args()
 
 torch.manual_seed(1)
 
@@ -23,30 +28,34 @@ def log_sum_exp(mat):
     return maxx + torch.log(torch.sum(torch.exp(mat - maxx)))
 
 class CRF(nn.Module):
-    def __init__(self, num_tags, vocab):
+    def __init__(self, vocab, tag2id):
         super(CRF, self).__init__()
-        self.num_tags = num_tags
+        self.num_tags = len(tag2id)
         self.vocab = vocab
+        self.tag2id = tag2id
 
-        self.emit_score = nn.Parameter(torch.randn(len(vocab), num_tags).cuda())
-        self.transitions = nn.Parameter(torch.randn(num_tags, num_tags).cuda())
-        # never transfer to start tag or never transfer from stop tag
-        # self.transitions[:, tag2id["<s>"]] = -10000.
-        # self.transitions[tag2id["</s>"], :] = -10000.
+        self.emit_score = nn.Parameter(torch.randn(len(vocab), self.num_tags).cuda())
+
+        transitions = torch.randn(self.num_tags, self.num_tags)
+        transitions[:, tag2id["<s>"]] = -10000.
+        transitions[tag2id["</s>"], :] = -10000.
+        
+        self.transitions = nn.Parameter(transitions).cuda()
+        # never transfer to START_TAG or never transfer from STOP_TAG
     
     def forward_alg(self, x):
         init_alphas = torch.ones(self.num_tags).cuda() * -10000
-        init_alphas[tag2id["<s>"]] = 0
+        init_alphas[self.tag2id["<s>"]] = 0
 
         alphas = init_alphas
 
-        for ch_id in x[1:]:
+        for ch_id in x:
             emit_score = self.emit_score[ch_id].view(1, -1)
             _score = alphas.view(-1, 1) + emit_score + self.transitions
             # _score = alphas + emit_score
             for i in range(self.num_tags):
                 alphas[i] = log_sum_exp(_score[:, i]).squeeze()
-        alphas = alphas + self.transitions[:, self.vocab["</s>"]]
+        alphas = alphas + self.transitions[:, self.tag2id["</s>"]]
         z = log_sum_exp(alphas)
         return z
 
@@ -55,20 +64,44 @@ class CRF(nn.Module):
     
     def score(self, x, y):
         s = 0
-        for i in range(1, len(x)-1):
+        for i in range(len(x)):
             s += self.emit_score[x[i]][y[i]]
-        for i in range(len(y)-1):
+
+        s += self.transitions[self.tag2id["<s>"]][y[0]]
+        for i in range(len(y)):
             s += self.transitions[y[i]][y[i+1]]
+        s += self.transitions[y[-1]][self.tag2id["</s>"]]
+
         return s
 
-    def infer(self, x):
-        pass
+    def back_trace(self, path, start_id):
+        res = [start_id]
+        for tags in reversed(path):
+            res.append(tags[res[-1]])
+        return reversed(res)
     
+    def infer(self, x):
+        init_alphas = torch.ones(self.num_tags).cuda() * -10000
+        init_alphas[self.tag2id["<s>"]] = 0
+
+        path = []
+        alphas = init_alphas
+
+        for ch_id in x:
+            emit_score = self.emit_score[ch_id].view(1, -1)
+            _score = alphas.view(-1, 1) + emit_score + self.transitions # 7*7
+            alphas, maxx_id = torch.max(_score, dim=0)[0]
+            path.append(maxx_id)
+        alphas += self.transitions[:, self.tag2id["</s>"]]
+
+        return self.back_trace(path, torch.argmax(alphas))
+
 
 if __name__ == "__main__":
     X, Y, vocab, tag2id = utils.load_data("train.bioes", "vocab.json")
-    model = CRF(len(tag2id), vocab).cuda()
-    # model.load_state_dict(torch.load(model_file))
+    model = CRF(vocab, tag2id).cuda()
+    if os.path.exists(args.model_file):
+        model.load_state_dict(torch.load(args.model_file))
     optimizer = torch.optim.SGD(model.parameters(), lr=0.01, weight_decay=1e-4)
 
     batch_size = 32
