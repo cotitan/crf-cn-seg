@@ -1,12 +1,13 @@
 import numpy as np
 import torch
 from torch import nn
+import os
 import utils
 import argparse
 
-args = argparse.ArgumentParser()
-args.add_argument('--model_file', type=str, default="models/params_0.pkl")
-args.parse_args()
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_file', type=str, default="models/params_0.pkl")
+args = parser.parse_args()
 
 torch.manual_seed(1)
 
@@ -68,7 +69,7 @@ class CRF(nn.Module):
             s += self.emit_score[x[i]][y[i]]
 
         s += self.transitions[self.tag2id["<s>"]][y[0]]
-        for i in range(len(y)):
+        for i in range(len(y) - 1):
             s += self.transitions[y[i]][y[i+1]]
         s += self.transitions[y[-1]][self.tag2id["</s>"]]
 
