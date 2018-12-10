@@ -1,25 +1,24 @@
 import os
 import json
 
-vocab_file = "vocab.json"
-tag2id = {"B": 0, "I": 1, "E": 2, "S": 3, "<s>": 4, "</s>": 5}
-
 def build_vocab(filein, vocab_file):
+    print("Building vocabulary...")
     fin = open(filein)
     vocab = {"<s>": 0, "</s>": 1}
+    tag2id = {"<s>": 0, "</s>": 1}
     for _, line in enumerate(fin):
-        for word in line.strip().split():
-            for ch in word:
-                if ch not in vocab:
-                    vocab[ch] = len(vocab)
+        if line.strip() == "":
+            continue
+        ch, tag = line.strip().split()
+        if ch not in vocab:
+            vocab[ch] = len(vocab)
+        if tag not in tag2id:
+            tag2id[tag] = len(tag2id)
     fin.close()
-    json.dump(vocab, open(vocab_file, "w"))
+    json.dump([vocab, tag2id], open(vocab_file, "w"))
 
-def load_data(filein, vocab_file):
-    if not os.path.exists(vocab_file):
-        build_vocab(filein, vocab_file)
-    vocab = json.load(open(vocab_file))
-
+def load_data(filein, vocab, tag2id):
+    print("Loading data...")
     fin = open(filein)
     X = []
     Y = []
@@ -38,7 +37,7 @@ def load_data(filein, vocab_file):
                 y.append(tag2id[tag])
             except:
                 print(line)
-    return X, Y, vocab, tag2id
+    return X, Y
 
 class BatchManager:
     def __init__(self, datas, batch_size):
