@@ -1,4 +1,5 @@
 /models
+!/models/params_0.pkl
 /__pycache__
 /*~
 /*.pyc
