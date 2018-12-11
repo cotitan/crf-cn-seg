@@ -10,7 +10,7 @@ from crf import CRF
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_file', type=str, default="models/params_0.pkl")
 parser.add_argument('--test', type=bool, default=False)
-parser.add_argument('--train_file', type=str, default="data/train.bies")
+parser.add_argument('--train_file', type=str, default="data/train.bmes")
 parser.add_argument('--test_file', type=str, default="")
 parser.add_argument('--vocab_file', type=str, default="data/vocab.json")
 parser.add_argument('--n_epochs', type=int, default=10)
@@ -34,6 +34,7 @@ def test_infer(model, vocab, tag2id):
         ids = model.infer(x)
         ids = [int(x.cpu().numpy()) for x in ids]
         tags = [id2tag[i] for i in ids]
+        print(tags)
         for i in range(len(sentence)):
             if tags[i] == "E" or tags[i] == "S":
                 print("%s " % sentence[i], end="")
@@ -41,13 +42,14 @@ def test_infer(model, vocab, tag2id):
                 print(sentence[i], end="")
         print("")
 
-def test_file(model, vocab, tag2id, filein, fileout):
+def evaluate_on_file(model, vocab, tag2id, filein, fileout):
     fin = open(filein)
     fout = open(fileout, "w")
     id2tag = {v:k for k,v in tag2id.items()}
     with torch.no_grad():
         for sentence in fin:
-            x = [vocab[ch] for ch in sentence]
+            sentence = sentence.strip()
+            x = [vocab.get(ch, vocab["<unk>"]) for ch in sentence]
             ids = model.infer(x)
             ids = [int(x.cpu().numpy()) for x in ids]
             tags = [id2tag[i] for i in ids]
@@ -64,7 +66,8 @@ def train(model, train_file, vocab, tag2id):
     # load train data
     X, Y = utils.load_data(train_file, vocab, tag2id)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.1, weight_decay=1e-4)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.3)
 
     batchX = utils.BatchManager(X, batch_size)
     batchY = utils.BatchManager(Y, batch_size)
@@ -84,7 +87,9 @@ def train(model, train_file, vocab, tag2id):
             loss.backward()
             optimizer.step()
 
-            print(bid, loss)
+            print("epoch %d, step %f" % (
+                bid, loss.detach().cpu().numpy().squeeze() ))
+        scheduler.step()
         model.cpu()
         torch.save(model.state_dict(), 'models/params_%d.pkl' % epoch)
         model.cuda()
@@ -95,6 +100,7 @@ if __name__ == "__main__":
         utils.build_vocab(train_file, vocab_file)
     vocab, tag2id = json.load(open(vocab_file))
 
+    print(tag2id)
     # load model
     model = CRF(vocab, tag2id).cuda()
     if os.path.exists(model_file):
@@ -103,6 +109,7 @@ if __name__ == "__main__":
     # test
     if args.test:
         test_infer(model, vocab, tag2id)
+        evaluate_on_file(model, vocab,tag2id, "data/pku_test.utf8", "data/pku_test.out")
         exit(0)
 
     # train

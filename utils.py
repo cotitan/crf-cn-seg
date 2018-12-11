@@ -4,7 +4,7 @@ import json
 def build_vocab(filein, vocab_file):
     print("Building vocabulary...")
     fin = open(filein)
-    vocab = {"<s>": 0, "</s>": 1}
+    vocab = {"<unk>": 0}
     tag2id = {"<s>": 0, "</s>": 1}
     for _, line in enumerate(fin):
         if line.strip() == "":
@@ -33,7 +33,7 @@ def load_data(filein, vocab, tag2id):
         else:
             try:
                 char, tag = line.strip().split()
-                x.append(vocab[char])
+                x.append(vocab[char if char in vocab else "<unk>"])
                 y.append(tag2id[tag])
             except:
                 print(line)
@@ -55,6 +55,7 @@ class BatchManager:
 
 
 if __name__ == "__main__":
-    X, Y = load_data("train.bioes", "vocab.json")
-    pass
+    vocab, tag2id = json.load(open("data/vocab.json"))
+    X, Y = load_data("data/train.bmes", vocab, tag2id)
+    print("")
     

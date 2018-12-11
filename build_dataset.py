@@ -6,7 +6,6 @@ parse = argparse.ArgumentParser()
 parse.add_argument("--input_file", type=str, default="data/pku_training.utf8", help="")
 parse.add_argument("--output_file", type=str, default="data/train", help="")
 parse.add_argument("--tag_schema", type=str, default="bmes", help="bi/bmes")
-parse.add_argument("--encoding", type=str, default="utf8", help="input file encoding")
 
 args = parse.parse_args()
 
