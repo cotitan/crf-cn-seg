@@ -28,6 +28,7 @@ a simple Chinese word segmentation tool based on CRF, implemented in pytorch
 ```
 python main.py  
 ```
+Generally, you will get 0.77+ F1 after 2 epochs.
 
 ## evaluate
 * generate segmented file
