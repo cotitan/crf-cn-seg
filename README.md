@@ -5,7 +5,7 @@ a simple Chinese word segmentation tool based on CRF, implemented in pytorch
 ```
 .
 ├── build_dataset.py  # Transfer raw text into labeled data
-├── crf.py  # model file
+├── crf.py  # pytorch implementation of CRF
 ├── data
 │   ├── pku_training.utf8  # raw training file
 │   ├── train.bmes  # labeled training file
@@ -15,6 +15,7 @@ a simple Chinese word segmentation tool based on CRF, implemented in pytorch
 │   ├── pku_training_words.utf8  # used for evaluate
 │   └── pku_test.out  # my predictions
 ├── main.py
+├── models.py # class CRF, BiLSTMCRF, TransformerCRF
 ├── models
 │   └── params_0.pkl
 ├── README.md
@@ -33,7 +34,7 @@ Generally, you will get 0.77+ F1 after 2 epochs.
 ## evaluate
 * generate segmented file
 ```
-python main --test True --model_file models/params_1.pkl
+python main --test --model_file models/params_1.pkl
 ```
 * evaluate p, r, f using perl scripts
 ```
@@ -43,9 +44,8 @@ At the end of score.utf8, you will find the precision, recall, F1.
 
 ## performance
 
-|epoch|precision|recall|F1-measure|
+|models|precision|recall|F1-measure|
 |--|--|--|--|
-|0|0.732|0.759|0.745|
-|1|0.766|0.786|0.776|
-|2|0.769|0.787|0.778|
-|3|0.776|0.786|0.781|
+|CRF (3 epochs)|0.796|0.804|0.800|
+|BiLSTM+CRF (1 epoch)|0.876|0.888|0.882|
+|Transformer+CRF (3 epochs)|0.785|0.797|0.791|

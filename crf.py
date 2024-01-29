@@ -12,26 +12,30 @@ def log_sum_exp(mat):
     return maxx + torch.log(torch.sum(torch.exp(mat - maxx)))
 
 class CRF(nn.Module):
-    def __init__(self, vocab, tag2id):
+    def __init__(self, vocab, tag2id, device):
         super(CRF, self).__init__()
         self.num_tags = len(tag2id)
         self.vocab = vocab
         self.tag2id = tag2id
+        self.device = device
 
         # make sure emit_score and transitions is leaf
         # that is, the is_leaf attribute of them is True
         # or the model will not converage
-        self.emit_score = nn.Parameter(torch.randn(len(vocab), self.num_tags).cuda())
+        self.emit_score = nn.Parameter(torch.randn(len(vocab), self.num_tags))
 
         # never transfer to START_TAG or never transfer from STOP_TAG
-        transitions = torch.randn(self.num_tags, self.num_tags).cuda()
+        transitions = torch.randn(self.num_tags, self.num_tags)
         transitions[:, tag2id["<s>"]] = -10000.
         transitions[tag2id["</s>"], :] = -10000.
         self.transitions = nn.Parameter(transitions)
     
     def forward_alg(self, x):
-        init_alphas = torch.ones(self.num_tags).cuda() * -10000
+        init_alphas = torch.ones(self.num_tags).to(self.device) * -10000
         init_alphas[self.tag2id["<s>"]] = 0
+
+        # init_alphas = torch.zeros(self.num_tags).to(self.device)
+        # init_alphas[self.tag2id["<s>"]] = 1
 
         alphas = init_alphas
 
@@ -68,7 +72,7 @@ class CRF(nn.Module):
         return reversed(res)
     
     def infer(self, x):
-        init_alphas = torch.ones(self.num_tags).cuda() * -10000
+        init_alphas = torch.ones(self.num_tags).to(self.device) * -10000
         init_alphas[self.tag2id["<s>"]] = 0
 
         path = []

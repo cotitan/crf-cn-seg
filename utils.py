@@ -1,11 +1,12 @@
 import os
 import json
+import numpy as np
 
 def build_vocab(filein, vocab_file):
     print("Building vocabulary...")
     fin = open(filein)
-    vocab = {"<unk>": 0}
-    tag2id = {"<s>": 0, "</s>": 1}
+    vocab = {"<pad>": 0, "<unk>": 1}
+    tag2id = {"<pad>": 0}
     for _, line in enumerate(fin):
         if line.strip() == "":
             continue
@@ -40,18 +41,31 @@ def load_data(filein, vocab, tag2id):
     return X, Y
 
 class BatchManager:
-    def __init__(self, datas, batch_size):
-        self.steps = int(len(datas) / batch_size)
-        self.datas = datas
+    def __init__(self, X, Y, batch_size):
+        self.steps = int(len(X) / batch_size)
+        self.X = X
+        self.Y = Y
         self.bs = batch_size
         self.bid = 0
+        perm = np.random.permutation(len(self.X))
+        self.X, self.Y = [self.X[p] for p in perm], [self.Y[p] for p in perm]
 
     def next_batch(self):
-        batch = list(self.datas[self.bid * self.bs: (self.bid + 1) * self.bs])
+        st, ed = self.bid * self.bs, (self.bid + 1) * self.bs
+        x = self.X[st:ed]
+        y = self.Y[st:ed]
+        
+        max_len = max(len(line) for line in x)
+        mask = [[1] * len(line) + [0] * (max_len - len(line)) for line in x]
+        x = [line + [0] * (max_len - len(line)) for line in x]
+        y = [line + [0] * (max_len - len(line)) for line in y]
+
         self.bid += 1
         if self.bid == self.steps:
             self.bid = 0
-        return batch
+            perm = np.random.permutation(len(self.X))
+            self.X, self.Y = [self.X[p] for p in perm], [self.Y[p] for p in perm]
+        return x, y, mask
 
 
 if __name__ == "__main__":
