@@ -1,14 +1,19 @@
-import os
 import json
 import numpy as np
 
-def build_vocab(filein, vocab_file):
+def build_vocab(filein, vocab_file, n_examples=20000):
     print("Building vocabulary...")
     fin = open(filein)
-    vocab = {"<pad>": 0, "<unk>": 1}
-    tag2id = {"<pad>": 0}
+    # vocab = {"<pad>": 0, "<unk>": 1}
+    # tag2id = {"<pad>": 0}
+    vocab = {"<unk>": 0}
+    tag2id = {'B': 0, 'M': 1, 'E': 2, 'S': 3}
+    eg_cnt = 0
     for _, line in enumerate(fin):
         if line.strip() == "":
+            eg_cnt += 1
+            if eg_cnt >= n_examples:
+                break
             continue
         ch, tag = line.strip().split()
         if ch not in vocab:
@@ -18,19 +23,24 @@ def build_vocab(filein, vocab_file):
     fin.close()
     json.dump([vocab, tag2id], open(vocab_file, "w"))
 
-def load_data(filein, vocab, tag2id):
+
+def load_data(filein, vocab, tag2id, n_examples=20000):
     print("Loading data...")
     fin = open(filein)
     X = []
     Y = []
     x = []
     y = []
-    for _, line in enumerate(fin):
+    eg_cnt = 0
+    for i, line in enumerate(fin):
         if line.strip() == "":
             X.append(x)
             Y.append(y)
             x = []
             y = []
+            eg_cnt += 1
+            if eg_cnt >= n_examples:
+                break
         else:
             try:
                 char, tag = line.strip().split()
@@ -39,6 +49,7 @@ def load_data(filein, vocab, tag2id):
             except:
                 print(line)
     return X, Y
+
 
 class BatchManager:
     def __init__(self, X, Y, batch_size):
